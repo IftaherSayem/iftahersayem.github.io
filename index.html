@@ -1,0 +1,973 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Iftaher Hossen | Computer Science Student</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&family=Dancing+Script:wght@700&display=swap"
+        rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'bg-primary': '#050810',
+                        'bg-secondary': '#0c1222',
+                        'bg-card': 'rgba(15, 23, 42, 0.6)',
+                        'fg-primary': '#f1f5f9',
+                        'fg-secondary': '#94a3b8',
+                        'fg-muted': '#64748b',
+                        'accent-primary': '#00d4ff',
+                        'accent-secondary': '#0891b2',
+                        'accent-warm': '#f97316',
+                        'border-color': 'rgba(0, 212, 255, 0.1)',
+                    },
+                    fontFamily: {
+                        'space': ['Space Grotesk', 'sans-serif'],
+                        'inter': ['Inter', 'sans-serif'],
+                        'signature': ['Dancing Script', 'cursive'],
+                    },
+                    animation: {
+                        'fadeInUp': 'fadeInUp 0.8s ease forwards',
+                        'pulse-slow': 'pulse 2s ease infinite',
+                        'scrollWheel': 'scrollWheel 2s ease infinite',
+                        'blink': 'blink 1s step-end infinite',
+                        'spin-slow': 'spin 1s linear infinite',
+                    },
+                    keyframes: {
+                        fadeInUp: {
+                            'from': { opacity: '0', transform: 'translateY(30px)' },
+                            'to': { opacity: '1', transform: 'translateY(0)' },
+                        },
+                        blink: {
+                            '50%': { 'border-color': 'transparent' },
+                        },
+                        scrollWheel: {
+                            '0%': { opacity: '1', transform: 'translateX(-50%) translateY(0)' },
+                            '100%': { opacity: '0', transform: 'translateX(-50%) translateY(10px)' },
+                        },
+                    },
+                }
+            }
+        }
+    </script>
+
+    <style type="text/css">
+        /* Custom scrollbar and noise texture (hard to do purely with standard Tailwind CDN) */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #050810;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #0891b2;
+            border-radius: 4px;
+        }
+
+        .noise {
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+        }
+
+        .reveal {
+            opacity: 0;
+            transform: translateY(40px);
+            transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .reveal.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Floating Label Styles */
+        .input-group {
+            position: relative;
+        }
+
+        .input-group label {
+            position: absolute;
+            left: 1rem;
+            top: 1rem;
+            color: #64748b;
+            transition: all 0.3s ease;
+            pointer-events: none;
+            font-size: 1rem;
+        }
+
+        .input-group input:focus ~ label,
+        .input-group input:not(:placeholder-shown) ~ label,
+        .input-group textarea:focus ~ label,
+        .input-group textarea:not(:placeholder-shown) ~ label {
+            top: -0.6rem;
+            left: 0.8rem;
+            font-size: 0.75rem;
+            background: #0c1222;
+            padding: 0 0.5rem;
+            color: #00d4ff;
+            border-radius: 4px;
+        }
+
+        /* Project Card Glow */
+        .project-card::before {
+            content: '';
+            position: absolute;
+            inset: -1px;
+            background: linear-gradient(45deg, transparent, rgba(0, 212, 255, 0.3), transparent);
+            z-index: -1;
+            border-radius: inherit;
+            opacity: 0;
+            transition: opacity 0.5s;
+        }
+
+        .project-card:hover::before {
+            opacity: 1;
+        }
+
+        /* Staggered mobile links - only apply in mobile view */
+        @media (max-width: 767px) {
+            #nav-links a {
+                opacity: 0;
+                transform: translateX(20px);
+                transition: all 0.4s ease;
+            }
+
+            #nav-links.active a {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+    </style>
+</head>
+
+<body class="font-inter bg-bg-primary text-fg-primary overflow-x-hidden leading-relaxed">
+    <canvas id="bg-canvas" class="fixed top-0 left-0 w-full h-full z-0 pointer-events-none"></canvas>
+    
+    <!-- Mouse Glow Effect -->
+    <div id="mouse-glow" class="fixed inset-0 pointer-events-none z-[1] transition-opacity duration-500 opacity-0" 
+         style="background: radial-gradient(600px circle at var(--x) var(--y), rgba(0, 212, 255, 0.06), transparent 80%);"></div>
+
+    <!-- Scroll Progress Bar -->
+    <div id="scroll-progress" class="fixed top-0 left-0 h-[2px] bg-gradient-to-r from-accent-primary to-accent-warm z-[2000] transition-all duration-100" style="width: 0%"></div>
+
+    <!-- Gradient Overlays -->
+    <div
+        class="fixed top-0 left-0 w-full h-full z-[1] pointer-events-none 
+        [background:radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(0,212,255,0.15),transparent),radial-gradient(ellipse_60%_40%_at_80%_60%,rgba(6,182,212,0.08),transparent),radial-gradient(ellipse_50%_30%_at_20%_80%,rgba(249,115,22,0.05),transparent)]">
+    </div>
+
+    <!-- Noise Texture -->
+    <div class="noise fixed top-0 left-0 w-full h-full opacity-[0.03] z-[2] pointer-events-none"></div>
+
+    <nav class="fixed top-0 left-0 right-0 z-[1000] px-8 py-4 backdrop-blur-xl bg-bg-primary/40 border-b border-white/10 transition-all duration-500"
+        id="navbar">
+        <div class="flex justify-between items-center max-w-7xl mx-auto">
+            <a href="#" class="font-signature text-3xl font-bold text-accent-primary tracking-wide">Sayem</a>
+
+            <div class="fixed inset-0 bg-black/50 opacity-0 invisible transition-all duration-300 z-[1000] md:hidden"
+                id="nav-overlay"></div>
+
+            <div class="flex gap-8 max-md:fixed max-md:top-0 max-md:-right-full max-md:w-[280px] max-md:h-screen max-md:bg-bg-primary/90 max-md:backdrop-blur-xl max-md:border-l max-md:border-white/10 max-md:flex-col max-md:p-24 max-md:transition-[right] max-md:duration-300 max-md:z-[1001]"
+                id="nav-links">
+                <a href="#about"
+                    class="relative text-fg-primary uppercase text-[0.875rem] font-medium tracking-widest py-2 transition-colors duration-300 hover:text-accent-primary group">
+                    About
+                    <span
+                        class="absolute bottom-0 left-0 w-0 h-[2px] bg-gradient-to-r from-accent-primary to-accent-warm transition-all duration-300 group-hover:w-full"></span>
+                </a>
+                <a href="#skills"
+                    class="relative text-fg-primary uppercase text-[0.875rem] font-medium tracking-widest py-2 transition-colors duration-300 hover:text-accent-primary group">
+                    Skills
+                    <span
+                        class="absolute bottom-0 left-0 w-0 h-[2px] bg-gradient-to-r from-accent-primary to-accent-warm transition-all duration-300 group-hover:w-full"></span>
+                </a>
+                <a href="#projects"
+                    class="relative text-fg-primary uppercase text-[0.875rem] font-medium tracking-widest py-2 transition-colors duration-300 hover:text-accent-primary group">
+                    Projects
+                    <span
+                        class="absolute bottom-0 left-0 w-0 h-[2px] bg-gradient-to-r from-accent-primary to-accent-warm transition-all duration-300 group-hover:w-full"></span>
+                </a>
+                <a href="#education"
+                    class="relative text-fg-primary uppercase text-[0.875rem] font-medium tracking-widest py-2 transition-colors duration-300 hover:text-accent-primary group">
+                    Education
+                    <span
+                        class="absolute bottom-0 left-0 w-0 h-[2px] bg-gradient-to-r from-accent-primary to-accent-warm transition-all duration-300 group-hover:w-full"></span>
+                </a>
+                <a href="#contact"
+                    class="relative text-fg-primary uppercase text-[0.875rem] font-medium tracking-widest py-2 transition-colors duration-300 hover:text-accent-primary group">
+                    Contact
+                    <span
+                        class="absolute bottom-0 left-0 w-0 h-[2px] bg-gradient-to-r from-accent-primary to-accent-warm transition-all duration-300 group-hover:w-full"></span>
+                </a>
+            </div>
+
+            <button class="flex md:hidden bg-none border-none text-fg-primary cursor-pointer p-2" id="mobile-menu-btn"
+                aria-label="Toggle menu">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+            </button>
+        </div>
+    </nav>
+
+    <main class="relative z-10">
+        <!-- Hero Section -->
+        <section class="min-h-screen flex flex-col justify-center items-center text-center px-8 pt-24 pb-16 relative"
+            id="hero">
+            <div
+                class="inline-flex items-center gap-2 px-4 py-2 bg-bg-card border border-border-color rounded-full text-[0.75rem] font-medium tracking-[0.1em] uppercase text-fg-secondary mb-8 backdrop-blur-[10px] animate-fadeInUp opacity-0">
+                <span class="w-1.5 h-1.5 bg-[#22c55e] rounded-full animate-pulse"></span>
+                Available for Internships
+            </div>
+
+            <h1
+                class="font-space text-[clamp(2.5rem,8vw,5rem)] font-bold tracking-tight leading-[1.1] mb-6 animate-fadeInUp opacity-0 [animation-delay:0.2s]">
+                Hi, I'm <span
+                    class="bg-gradient-to-br from-accent-primary to-accent-warm bg-clip-text text-transparent">Iftaher
+                    Hossen</span>
+            </h1>
+
+            <p
+                class="text-[clamp(1rem,2vw,1.25rem)] text-fg-secondary max-w-[600px] mb-4 animate-fadeInUp opacity-0 [animation-delay:0.4s]">
+                Computer Science Student | Software Developer | Problem Solver</p>
+
+            <div
+                class="font-space text-[clamp(1rem,2vw,1.5rem)] font-medium text-accent-primary mb-8 min-h-[2rem] animate-fadeInUp opacity-0 [animation-delay:0.6s]">
+                <span class="border-r-2 border-accent-primary animate-blink pr-1" id="typing-text"></span>
+            </div>
+
+            <p
+                class="text-base text-fg-muted max-w-[500px] mb-10 leading-relaxed animate-fadeInUp opacity-0 [animation-delay:0.8s]">
+                Passionate about building elegant solutions to complex problems.
+                Currently exploring algorithms, system programming, and web development.
+            </p>
+
+            <div class="flex gap-4 mb-12 flex-wrap justify-center animate-fadeInUp opacity-0 [animation-delay:1s]">
+                <a href="#"
+                    class="inline-flex items-center gap-2 px-7 py-3.5 font-space text-[0.875rem] font-semibold tracking-widest uppercase rounded-lg transition-all duration-300 bg-gradient-to-br from-accent-primary to-accent-secondary text-bg-primary shadow-[0_4px_20px_rgba(0,212,255,0.3)] hover:-translate-y-0.5 hover:shadow-[0_8px_30px_rgba(0,212,255,0.4)]">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Download Resume
+                </a>
+                <a href="#projects"
+                    class="inline-flex items-center gap-2 px-7 py-3.5 font-space text-[0.875rem] font-semibold tracking-widest uppercase rounded-lg border border-border-color backdrop-blur-[10px] text-fg-primary transition-all duration-300 hover:border-accent-primary hover:text-accent-primary hover:-translate-y-0.5">
+                    View Projects
+                </a>
+            </div>
+
+            <div class="flex gap-4 animate-fadeInUp opacity-0 [animation-delay:1.2s]">
+                <a href="https://github.com/IftaherSayem" target="_blank"
+                    class="flex items-center justify-center w-12 h-12 bg-bg-card border border-border-color rounded-xl text-fg-secondary transition-all duration-300 backdrop-blur-md hover:border-accent-primary hover:text-accent-primary hover:-translate-y-1 hover:shadow-[0_8px_20px_rgba(0,212,255,0.2)]">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                        <path
+                            d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
+                    </svg>
+                </a>
+                <a href="#" target="_blank"
+                    class="flex items-center justify-center w-12 h-12 bg-bg-card border border-border-color rounded-xl text-fg-secondary transition-all duration-300 backdrop-blur-md hover:border-accent-primary hover:text-accent-primary hover:-translate-y-1 hover:shadow-[0_8px_20px_rgba(0,212,255,0.2)]">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                        <path
+                            d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z" />
+                    </svg>
+                </a>
+                <a href="mailto:iftahersayem205@gmail.com"
+                    class="flex items-center justify-center w-12 h-12 bg-bg-card border border-border-color rounded-xl text-fg-secondary transition-all duration-300 backdrop-blur-md hover:border-accent-primary hover:text-accent-primary hover:-translate-y-1 hover:shadow-[0_8px_20px_rgba(0,212,255,0.2)]">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                </a>
+            </div>
+
+            <div class="absolute bottom-8 left-1/2 -translate-x-1/2 opacity-0 animate-fadeInUp [animation-delay:1.5s]">
+                <div class="w-6 h-[38px] border-2 border-fg-muted rounded-xl relative">
+                    <div
+                        class="w-1 h-2 bg-accent-primary rounded-[2px] absolute top-1.5 left-1/2 -translate-x-1/2 animate-scrollWheel">
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- About Section -->
+        <section class="px-8 py-24 relative" id="about">
+            <div class="text-center mb-16 reveal">
+                <span
+                    class="inline-block text-[0.75rem] font-semibold tracking-[0.2em] uppercase text-accent-primary mb-4">Get
+                    to know me</span>
+                <h2 class="font-space text-[clamp(2rem,5vw,3rem)] font-bold tracking-tight mb-4">About Me</h2>
+                <p class="text-base text-fg-muted max-w-[500px] mx-auto">A passionate developer on a journey to create
+                    meaningful technology</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-[400px_1fr] gap-16 max-w-[1200px] mx-auto items-center">
+                <div class="relative reveal">
+                    <div
+                        class="relative aspect-[4/5] rounded-[20px] overflow-hidden bg-gradient-to-br from-bg-card to-bg-secondary border border-border-color group">
+                        <div
+                            class="absolute inset-0 bg-gradient-to-br from-accent-primary to-accent-warm opacity-10 z-[1]">
+                        </div>
+                        <img src="https://z-cdn-media.chatglm.cn/files/49f364ab-e2d4-43e4-a57a-a564f4819dfd.jpg?auth_key=1872120146-49be394967f14ac498a70ae08e1dd216-0-14bb66eb10cda1d9b0f6c42e84483024"
+                            alt="Profile Photo"
+                            class="w-full h-full object-cover relative z-0 transition-transform duration-500 group-hover:scale-105">
+                    </div>
+                    <div
+                        class="absolute inset-0 top-5 left-5 border-2 border-accent-primary rounded-[20px] opacity-30 -z-[1]">
+                    </div>
+                </div>
+
+                <div class="reveal">
+                    <h3 class="font-space text-2xl font-semibold mb-6 text-fg-primary">Building the future, one line of
+                        code at a time</h3>
+                    <p class="text-fg-secondary mb-6 leading-relaxed">
+                        I'm a Computer Science student at International Islamic University Chittagong with a deep
+                        passion for
+                        software development and problem-solving. My journey in tech began with curiosity about how
+                        things work,
+                        and has evolved into a dedicated pursuit of building useful applications.
+                    </p>
+                    <p class="text-fg-secondary mb-6 leading-relaxed">
+                        I specialize in building applications using C++ and Python, while actively learning web
+                        development
+                        with JavaScript. I'm particularly interested in algorithms, data structures, and creating
+                        efficient solutions.
+                    </p>
+                    <p class="text-fg-secondary mb-6 leading-relaxed">
+                        My goal is to join a forward-thinking tech company where I can contribute to
+                        meaningful projects while continuously learning from talented engineers.
+                    </p>
+
+                    <div
+                        class="grid grid-cols-3 gap-6 mt-8 pt-8 border-t border-border-color max-md:grid-cols-1 max-md:text-left">
+                        <div class="max-md:flex max-md:items-center max-md:gap-4">
+                            <span class="font-space text-[2rem] font-bold text-accent-primary block mb-1 stat-number"
+                                data-target="4">0</span>
+                            <span class="text-[0.75rem] text-fg-muted uppercase tracking-widest">Projects
+                                Completed</span>
+                        </div>
+                        <div class="max-md:flex max-md:items-center max-md:gap-4">
+                            <span class="font-space text-[2rem] font-bold text-accent-primary block mb-1 stat-number"
+                                data-target="2">0</span>
+                            <span class="text-[0.75rem] text-fg-muted uppercase tracking-widest">Years Coding</span>
+                        </div>
+                        <div class="max-md:flex max-md:items-center max-md:gap-4">
+                            <span class="font-space text-[2rem] font-bold text-accent-primary block mb-1 stat-number"
+                                data-target="3">0</span>
+                            <span class="text-[0.75rem] text-fg-muted uppercase tracking-widest">Languages Known</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Skills Section -->
+        <section class="px-8 py-24 relative" id="skills">
+            <div class="text-center mb-16 reveal">
+                <span
+                    class="inline-block text-[0.75rem] font-semibold tracking-[0.2em] uppercase text-accent-primary mb-4">What
+                    I work with</span>
+                <h2 class="font-space text-[clamp(2rem,5vw,3rem)] font-bold tracking-tight mb-4">Skills & Technologies
+                </h2>
+                <p class="text-base text-fg-muted max-w-[500px] mx-auto">Technologies I've been working with and
+                    continuously improving</p>
+            </div>
+
+            <div class="max-w-[1200px] mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- Skill Category -->
+                <div
+                    class="bg-bg-card border border-border-color rounded-2xl p-8 backdrop-blur-[10px] transition-all duration-[400ms] hover:border-accent-primary/30 hover:-translate-y-1 hover:shadow-[0_20px_40px_rgba(0,0,0,0.3)] reveal">
+                    <div class="flex items-center gap-4 mb-6">
+                        <div
+                            class="w-12 h-12 flex items-center justify-center bg-gradient-to-br from-accent-primary/10 to-accent-warm/10 rounded-xl text-accent-primary">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                            </svg>
+                        </div>
+                        <h3 class="text-xl font-semibold">Programming</h3>
+                    </div>
+                    <div class="space-y-4">
+                        <div class="space-y-2">
+                            <div class="flex justify-between items-center text-sm font-medium">
+                                <span class="text-fg-secondary">C++</span>
+                                <span class="text-[0.75rem] text-fg-muted">Intermediate</span>
+                            </div>
+                            <div class="h-1 bg-bg-secondary rounded-sm overflow-hidden">
+                                <div class="skill-progress h-full bg-gradient-to-r from-accent-primary to-accent-secondary w-0 transition-[width] duration-1000"
+                                    style="--progress: 70%"></div>
+                            </div>
+                        </div>
+                        <div class="space-y-2">
+                            <div class="flex justify-between items-center text-sm font-medium">
+                                <span class="text-fg-secondary">Python</span>
+                                <span class="text-[0.75rem] text-fg-muted">Intermediate</span>
+                            </div>
+                            <div class="h-1 bg-bg-secondary rounded-sm overflow-hidden">
+                                <div class="skill-progress h-full bg-gradient-to-r from-accent-primary to-accent-secondary w-0 transition-[width] duration-1000"
+                                    style="--progress: 65%"></div>
+                            </div>
+                        </div>
+                        <div class="space-y-2">
+                            <div class="flex justify-between items-center text-sm font-medium">
+                                <span class="text-fg-secondary">JavaScript</span>
+                                <span class="text-[0.75rem] text-fg-muted">Beginner</span>
+                            </div>
+                            <div class="h-1 bg-bg-secondary rounded-sm overflow-hidden">
+                                <div class="skill-progress h-full bg-gradient-to-r from-accent-primary to-accent-secondary w-0 transition-[width] duration-1000"
+                                    style="--progress: 35%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Skill Category -->
+                <div
+                    class="bg-bg-card border border-border-color rounded-2xl p-8 backdrop-blur-[10px] transition-all duration-[400ms] hover:border-accent-primary/30 hover:-translate-y-1 hover:shadow-[0_20px_40px_rgba(0,0,0,0.3)] reveal">
+                    <div class="flex items-center gap-4 mb-6">
+                        <div
+                            class="w-12 h-12 flex items-center justify-center bg-gradient-to-br from-accent-primary/10 to-accent-warm/10 rounded-xl text-accent-primary">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                            </svg>
+                        </div>
+                        <h3 class="text-xl font-semibold">Web Development</h3>
+                    </div>
+                    <div class="space-y-4">
+                        <div class="space-y-2">
+                            <div class="flex justify-between items-center text-sm font-medium">
+                                <span class="text-fg-secondary">HTML & CSS</span>
+                                <span class="text-[0.75rem] text-fg-muted">Intermediate</span>
+                            </div>
+                            <div class="h-1 bg-bg-secondary rounded-sm overflow-hidden">
+                                <div class="skill-progress h-full bg-gradient-to-r from-accent-primary to-accent-secondary w-0 transition-[width] duration-1000"
+                                    style="--progress: 70%"></div>
+                            </div>
+                        </div>
+                        <div class="space-y-2">
+                            <div class="flex justify-between items-center text-sm font-medium">
+                                <span class="text-fg-secondary">React</span>
+                                <span class="text-[0.75rem] text-fg-muted">Learning</span>
+                            </div>
+                            <div class="h-1 bg-bg-secondary rounded-sm overflow-hidden">
+                                <div class="skill-progress h-full bg-gradient-to-r from-accent-primary to-accent-secondary w-0 transition-[width] duration-1000"
+                                    style="--progress: 15%"></div>
+                            </div>
+                        </div>
+                        <div class="space-y-2">
+                            <div class="flex justify-between items-center text-sm font-medium">
+                                <span class="text-fg-secondary">Node.js</span>
+                                <span class="text-[0.75rem] text-fg-muted">Planning</span>
+                            </div>
+                            <div class="h-1 bg-bg-secondary rounded-sm overflow-hidden">
+                                <div class="skill-progress h-full bg-gradient-to-r from-accent-primary to-accent-secondary w-0 transition-[width] duration-1000"
+                                    style="--progress: 5%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Skill Category -->
+                <div
+                    class="bg-bg-card border border-border-color rounded-2xl p-8 backdrop-blur-[10px] transition-all duration-[400ms] hover:border-accent-primary/30 hover:-translate-y-1 hover:shadow-[0_20px_40px_rgba(0,0,0,0.3)] reveal">
+                    <div class="flex items-center gap-4 mb-6">
+                        <div
+                            class="w-12 h-12 flex items-center justify-center bg-gradient-to-br from-accent-primary/10 to-accent-warm/10 rounded-xl text-accent-primary">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                                <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                        </div>
+                        <h3 class="text-xl font-semibold">Tools & Platforms</h3>
+                    </div>
+                    <div class="space-y-4">
+                        <div class="space-y-2">
+                            <div class="flex justify-between items-center text-sm font-medium">
+                                <span class="text-fg-secondary">Git & GitHub</span>
+                                <span class="text-[0.75rem] text-fg-muted">Intermediate</span>
+                            </div>
+                            <div class="h-1 bg-bg-secondary rounded-sm overflow-hidden">
+                                <div class="skill-progress h-full bg-gradient-to-r from-accent-primary to-accent-secondary w-0 transition-[width] duration-1000"
+                                    style="--progress: 65%"></div>
+                            </div>
+                        </div>
+                        <div class="space-y-2">
+                            <div class="flex justify-between items-center text-sm font-medium">
+                                <span class="text-fg-secondary">VS Code</span>
+                                <span class="text-[0.75rem] text-fg-muted">Advanced</span>
+                            </div>
+                            <div class="h-1 bg-bg-secondary rounded-sm overflow-hidden">
+                                <div class="skill-progress h-full bg-gradient-to-r from-accent-primary to-accent-secondary w-0 transition-[width] duration-1000"
+                                    style="--progress: 90%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Projects Section -->
+        <section class="px-8 py-24 relative" id="projects">
+            <div class="text-center mb-16 reveal">
+                <span
+                    class="inline-block text-[0.75rem] font-semibold tracking-[0.2em] uppercase text-accent-primary mb-4">My
+                    work</span>
+                <h2 class="font-space text-[clamp(2rem,5vw,3rem)] font-bold tracking-tight mb-4">Featured Projects</h2>
+                <p class="text-base text-fg-muted max-w-[500px] mx-auto">A selection of projects I've built to solve
+                    real-world problems</p>
+            </div>
+
+            <div class="max-w-[1200px] mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- Project Card -->
+                <article
+                    class="project-card bg-bg-card border border-border-color rounded-[20px] overflow-hidden backdrop-blur-[10px] transition-all duration-[400ms] hover:border-accent-primary/30 hover:-translate-y-2 hover:shadow-[0_30px_60px_rgba(0,0,0,0.4)] flex flex-col reveal relative">
+                    <div
+                        class="aspect-[16/10] bg-gradient-to-br from-bg-secondary to-bg-primary relative overflow-hidden">
+                        <div class="absolute inset-0 bg-gradient-to-br from-accent-primary/10 to-accent-warm/5"></div>
+                        <img src="https://i.ibb.co.com/Xrw69dPM/simple-student-report-management.png" alt="Project"
+                            class="w-full h-full object-cover relative z-10">
+                    </div>
+                    <div class="p-6 flex flex-col flex-1">
+                        <h3 class="text-[1.25rem] font-semibold mb-3 text-fg-primary">Student Info Management</h3>
+                        <p class="text-[0.875rem] text-fg-secondary mb-4 leading-relaxed flex-1">
+                            A simple project using Jframe in which we can add student info. we also use Mysql for
+                            storing student information.
+                        </p>
+                        <div class="flex flex-wrap gap-2 mb-6">
+                            <span
+                                class="text-[0.75rem] px-3 py-1.5 bg-accent-primary/10 border border-accent-primary/20 rounded-full text-accent-primary font-medium">JAVA</span>
+                            <span
+                                class="text-[0.75rem] px-3 py-1.5 bg-accent-primary/10 border border-accent-primary/20 rounded-full text-accent-primary font-medium">JFRAME</span>
+                            <span
+                                class="text-[0.75rem] px-3 py-1.5 bg-accent-primary/10 border border-accent-primary/20 rounded-full text-accent-primary font-medium">MySql</span>
+                        </div>
+                        <div class="flex gap-4 pt-4 border-t border-border-color">
+                            <a href="https://github.com/IftaherSayem/simple-student-info-management-using-jframe"
+                                target="_blank"
+                                class="inline-flex items-center gap-2 text-[0.875rem] font-medium text-fg-secondary transition-colors duration-300 hover:text-accent-primary">
+                                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                                    <path
+                                        d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
+                                </svg>
+                                View Code
+                            </a>
+                        </div>
+                    </div>
+                </article>
+
+                <!-- Project Card -->
+                <article
+                    class="project-card bg-bg-card border border-border-color rounded-[20px] overflow-hidden backdrop-blur-[10px] transition-all duration-[400ms] hover:border-accent-primary/30 hover:-translate-y-2 hover:shadow-[0_30px_60px_rgba(0,0,0,0.4)] flex flex-col reveal relative">
+                    <div
+                        class="aspect-[16/10] bg-gradient-to-br from-bg-secondary to-bg-primary relative overflow-hidden">
+                        <div class="absolute inset-0 bg-gradient-to-br from-accent-primary/10 to-accent-warm/5"></div>
+                        <img src="https://i.ibb.co.com/1fB5gxdB/og.png" alt="Project"
+                            class="w-full h-full object-cover relative z-10">
+                    </div>
+                    <div class="p-6 flex flex-col flex-1">
+                        <h3 class="text-[1.25rem] font-semibold mb-3 text-fg-primary">Course Resource Hub</h3>
+                        <p class="text-[0.875rem] text-fg-secondary mb-4 leading-relaxed flex-1">
+                            A responsive website for university students to access course materials,
+                            share study resources, and collaborate on assignments.
+                        </p>
+                        <div class="flex flex-wrap gap-2 mb-6">
+                            <span
+                                class="text-[0.75rem] px-3 py-1.5 bg-accent-primary/10 border border-accent-primary/20 rounded-full text-accent-primary font-medium">HTML</span>
+                            <span
+                                class="text-[0.75rem] px-3 py-1.5 bg-accent-primary/10 border border-accent-primary/20 rounded-full text-accent-primary font-medium">CSS</span>
+                            <span
+                                class="text-[0.75rem] px-3 py-1.5 bg-accent-primary/10 border border-accent-primary/20 rounded-full text-accent-primary font-medium">JS</span>
+                        </div>
+                        <div class="flex gap-4 pt-4 border-t border-border-color">
+                            <a href="https://github.com/IftaherSayem/IIUC-CSE-RESOURCE" target="_blank"
+                                class="inline-flex items-center gap-2 text-[0.875rem] font-medium text-fg-secondary transition-colors duration-300 hover:text-accent-primary">
+                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                    <path
+                                        d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
+                                </svg>
+                                Code
+                            </a>
+                            <a href="https://cseresourceofiiuc.netlify.app" target="_blank"
+                                class="inline-flex items-center gap-2 text-[0.875rem] font-medium text-fg-secondary transition-colors duration-300 hover:text-accent-primary">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                </svg>
+                                Live
+                            </a>
+                        </div>
+                    </div>
+                </article>
+
+                <!-- Project Card -->
+                <article
+                    class="project-card bg-bg-card border border-border-color rounded-[20px] overflow-hidden backdrop-blur-[10px] transition-all duration-[400ms] hover:border-accent-primary/30 hover:-translate-y-2 hover:shadow-[0_30px_60px_rgba(0,0,0,0.4)] flex flex-col reveal relative">
+                    <div
+                        class="aspect-[16/10] bg-gradient-to-br from-bg-secondary to-bg-primary relative overflow-hidden">
+                        <div class="absolute inset-0 bg-gradient-to-br from-accent-primary/10 to-accent-warm/5"></div>
+                        <img src="https://i.ibb.co.com/6JXMg0s1/auto-fb-req.png" alt="Project"
+                            class="w-full h-full object-cover relative z-10">
+                    </div>
+                    <div class="p-6 flex flex-col flex-1">
+                        <h3 class="text-[1.25rem] font-semibold mb-3 text-fg-primary">Automation Scripts</h3>
+                        <p class="text-[0.875rem] text-fg-secondary mb-4 leading-relaxed flex-1">
+                            A python Script for sending Bulk friend request using selenium webdriver.
+                        </p>
+                        <div class="flex flex-wrap gap-2 mb-6">
+                            <span
+                                class="text-[0.75rem] px-3 py-1.5 bg-accent-primary/10 border border-accent-primary/20 rounded-full text-accent-primary font-medium">Python</span>
+                            <span
+                                class="text-[0.75rem] px-3 py-1.5 bg-accent-primary/10 border border-accent-primary/20 rounded-full text-accent-primary font-medium">Selenium</span>
+                        </div>
+                        <div class="flex gap-4 pt-4 border-t border-border-color">
+                            <a href="https://github.com/IftaherSayem/FACEBOOK-AUTOMATION" target="_blank"
+                                class="inline-flex items-center gap-2 text-[0.875rem] font-medium text-fg-secondary transition-colors duration-300 hover:text-accent-primary">
+                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                    <path
+                                        d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
+                                </svg>
+                                Code
+                            </a>
+                        </div>
+                    </div>
+                </article>
+
+                <article
+                    class="project-card bg-bg-card border border-border-color rounded-[20px] overflow-hidden backdrop-blur-[10px] transition-all duration-[400ms] hover:border-accent-primary/30 hover:-translate-y-2 hover:shadow-[0_30px_60px_rgba(0,0,0,0.4)] flex flex-col reveal relative">
+                    <div
+                        class="aspect-[16/10] bg-gradient-to-br from-bg-secondary to-bg-primary relative overflow-hidden">
+                        <div class="absolute inset-0 bg-gradient-to-br from-accent-primary/10 to-accent-warm/5"></div>
+                        <img src="https://i.ibb.co.com/hJQqjjD0/5AM.png" alt="5AM EVENTS"
+                            class="w-full h-full object-cover relative z-10">
+                    </div>
+                    <div class="p-6 flex flex-col flex-1">
+                        <h3 class="text-[1.25rem] font-semibold mb-3 text-fg-primary">5AM EVENTS</h3>
+                        <p class="text-[0.875rem] text-fg-secondary mb-4 leading-relaxed flex-1">
+                            An event landing page showcasing early morning productivity events and workshops.
+                            Features modern design with smooth animations and responsive layout.
+                        </p>
+                        <div class="flex flex-wrap gap-2 mb-6">
+                            <span
+                                class="text-[0.75rem] px-3 py-1.5 bg-accent-primary/10 border border-accent-primary/20 rounded-full text-accent-primary font-medium">HTML</span>
+                            <span
+                                class="text-[0.75rem] px-3 py-1.5 bg-accent-primary/10 border border-accent-primary/20 rounded-full text-accent-primary font-medium">CSS</span>
+                            <span
+                                class="text-[0.75rem] px-3 py-1.5 bg-accent-primary/10 border border-accent-primary/20 rounded-full text-accent-primary font-medium">JS</span>
+                        </div>
+                        <div class="flex gap-4 pt-4 border-t border-border-color">
+                            <a href="https://github.com/page-host/5AM-EVENTS" target="_blank"
+                                class="inline-flex items-center gap-2 text-[0.875rem] font-medium text-fg-secondary transition-colors duration-300 hover:text-accent-primary">
+                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                    <path
+                                        d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
+                                </svg>
+                                Code
+                            </a>
+                            <a href="https://page-host.github.io/5AM-EVENTS/" target="_blank"
+                                class="inline-flex items-center gap-2 text-[0.875rem] font-medium text-fg-secondary transition-colors duration-300 hover:text-accent-primary">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                </svg>
+                                Live
+                            </a>
+                        </div>
+                    </div>
+                </article>
+            </div>
+        </section>
+
+        <!-- Education Section -->
+        <section class="px-8 py-24 relative" id="education">
+            <div class="text-center mb-16 reveal">
+                <span
+                    class="inline-block text-[0.75rem] font-semibold tracking-[0.2em] uppercase text-accent-primary mb-4">My
+                    background</span>
+                <h2 class="font-space text-[clamp(2rem,5vw,3rem)] font-bold tracking-tight mb-4">Education</h2>
+                <p class="text-base text-fg-muted max-w-[500px] mx-auto">My academic journey and relevant coursework</p>
+            </div>
+
+            <div class="max-w-[800px] mx-auto">
+                <div
+                    class="bg-bg-card border border-border-color rounded-[20px] p-10 backdrop-blur-[10px] relative overflow-hidden reveal">
+                    <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-accent-primary to-accent-warm">
+                    </div>
+
+                    <div class="flex gap-6 mb-6 max-md:flex-wrap">
+                        <div
+                            class="w-16 h-16 flex items-center justify-center bg-gradient-to-br from-accent-primary/10 to-accent-warm/10 rounded-2xl flex-shrink-0 text-accent-primary">
+                            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path d="M12 14l9-5-9-5-9 5 9 5z" />
+                                <path
+                                    d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5l4-2.222" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="text-2xl font-semibold mb-1">International Islamic University Chittagong</h3>
+                            <p class="text-accent-primary mb-1">Bachelor of Science in Computer Science & Engineering
+                            </p>
+                            <p class="text-[0.875rem] text-fg-muted">Expected Graduation: December 2027</p>
+                        </div>
+                    </div>
+
+                    <div class="pt-6 border-t border-border-color">
+                        <p class="text-[0.875rem] font-semibold text-fg-secondary uppercase tracking-widest mb-4">
+                            Relevant Coursework</p>
+                        <div class="flex flex-wrap gap-2">
+                            <span class="text-[0.875rem] px-4 py-2 bg-bg-secondary rounded-lg text-fg-secondary">Data
+                                Structures</span>
+                            <span
+                                class="text-[0.875rem] px-4 py-2 bg-bg-secondary rounded-lg text-fg-secondary">Algorithms</span>
+                            <span
+                                class="text-[0.875rem] px-4 py-2 bg-bg-secondary rounded-lg text-fg-secondary">Object-Oriented
+                                Programming</span>
+                            <span
+                                class="text-[0.875rem] px-4 py-2 bg-bg-secondary rounded-lg text-fg-secondary">Database
+                                Systems</span>
+                            <span class="text-[0.875rem] px-4 py-2 bg-bg-secondary rounded-lg text-fg-secondary">Web
+                                Development</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Contact Section -->
+        <section class="px-8 py-24 relative" id="contact">
+            <div class="text-center mb-16 reveal">
+                <span
+                    class="inline-block text-[0.75rem] font-semibold tracking-[0.2em] uppercase text-accent-primary mb-4">Get
+                    in touch</span>
+                <h2 class="font-space text-[clamp(2rem,5vw,3rem)] font-bold tracking-tight mb-4">Contact Me</h2>
+                <p class="text-base text-fg-muted max-w-[500px] mx-auto">Have a question or want to work together? I'd
+                    love to hear from you.</p>
+            </div>
+
+            <div class="max-w-[600px] mx-auto">
+                <div class="bg-bg-card border border-border-color rounded-[24px] p-12 backdrop-blur-[10px] reveal">
+                    <form class="flex flex-col gap-8" id="contact-form">
+                        <div class="input-group">
+                            <input type="text" id="name"
+                                class="w-full p-4 bg-bg-secondary border border-border-color rounded-xl text-fg-primary text-base transition-all focus:outline-none focus:border-accent-primary focus:ring-4 focus:ring-accent-primary/10"
+                                placeholder=" " required>
+                            <label for="name">Name</label>
+                        </div>
+
+                        <div class="input-group">
+                            <input type="email" id="email"
+                                class="w-full p-4 bg-bg-secondary border border-border-color rounded-xl text-fg-primary text-base transition-all focus:outline-none focus:border-accent-primary focus:ring-4 focus:ring-accent-primary/10"
+                                placeholder=" " required>
+                            <label for="email">Email</label>
+                        </div>
+
+                        <div class="input-group">
+                            <textarea id="message"
+                                class="w-full p-4 bg-bg-secondary border border-border-color rounded-xl text-fg-primary text-base transition-all focus:outline-none focus:border-accent-primary focus:ring-4 focus:ring-accent-primary/10 min-h-[150px] resize-y"
+                                placeholder=" " required></textarea>
+                            <label for="message">Message</label>
+                        </div>
+
+                        <button type="submit"
+                            class="relative overflow-hidden flex items-center justify-center gap-3 p-4 bg-gradient-to-r from-accent-primary to-accent-secondary text-bg-primary font-space text-[0.875rem] font-bold tracking-widest uppercase rounded-xl transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_8px_30px_rgba(0,212,255,0.4)] group">
+                            <span class="relative z-10">Send Message</span>
+                            <svg class="w-[18px] h-[18px] relative z-10" fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                            </svg>
+                            <div
+                                class="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity">
+                            </div>
+                        </button>
+                    </form>
+
+                    <div class="mt-8 pt-8 border-t border-border-color text-center">
+                        <p class="text-[0.875rem] text-fg-muted mb-4">Or reach out directly</p>
+                        <a href="mailto:iftahersayem205@gmail.com"
+                            class="inline-flex items-center gap-2 text-accent-primary font-medium transition-colors hover:text-accent-warm">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                            </svg>
+                            iftahersayem205@gmail.com
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="p-12 text-center border-t border-border-color relative z-10">
+        <p class="text-[0.875rem] text-fg-muted">
+            Designed & Built by Iftaher Hossen &copy; 2026. All rights reserved.
+        </p>
+    </footer>
+
+    <script>
+        // Background Particles
+        const canvas = document.getElementById('bg-canvas');
+        const ctx = canvas.getContext('2d');
+        let width, height, particles = [];
+
+        function initCanvas() {
+            width = window.innerWidth;
+            height = window.innerHeight;
+            canvas.width = width;
+            canvas.height = height;
+            particles = [];
+            const count = Math.min(80, Math.floor((width * height) / 15000));
+            for (let i = 0; i < count; i++) particles.push({
+                x: Math.random() * width, y: Math.random() * height,
+                size: Math.random() * 2 + 0.5,
+                sx: (Math.random() - 0.5) * 0.5, sy: (Math.random() - 0.5) * 0.5,
+                o: Math.random() * 0.5 + 0.1
+            });
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, width, height);
+            particles.forEach(p => {
+                p.x += p.sx; p.y += p.sy;
+                if (p.x < 0 || p.x > width || p.y < 0 || p.y > height) { p.x = Math.random() * width; p.y = Math.random() * height; }
+                ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(0, 212, 255, ${p.o})`; ctx.fill();
+            });
+
+            for (let i = 0; i < particles.length; i++) {
+                for (let j = i + 1; j < particles.length; j++) {
+                    const dx = particles[i].x - particles[j].x, dy = particles[i].y - particles[j].y;
+                    const d = Math.sqrt(dx * dx + dy * dy);
+                    if (d < 150) {
+                        ctx.beginPath(); ctx.moveTo(particles[i].x, particles[i].y); ctx.lineTo(particles[j].x, particles[j].y);
+                        ctx.strokeStyle = `rgba(0, 212, 255, ${0.1 * (1 - d / 150)})`; ctx.lineWidth = 0.5; ctx.stroke();
+                    }
+                }
+            }
+            requestAnimationFrame(animate);
+        }
+
+        initCanvas(); animate();
+        window.addEventListener('resize', initCanvas);
+
+        // Typing effect
+        const words = ['Building elegant solutions.', 'Crafting clean code.', 'Solving complex problems.', 'Learning every day.'];
+        let wordIdx = 0, charIdx = 0, isDel = false;
+        const typingEl = document.getElementById('typing-text');
+
+        function type() {
+            const curr = words[wordIdx];
+            typingEl.textContent = isDel ? curr.substring(0, charIdx - 1) : curr.substring(0, charIdx + 1);
+            charIdx += isDel ? -1 : 1;
+            let speed = isDel ? 30 : 80;
+            if (!isDel && charIdx === curr.length) { speed = 2000; isDel = true; }
+            else if (isDel && charIdx === 0) { isDel = false; wordIdx = (wordIdx + 1) % words.length; speed = 500; }
+            setTimeout(type, speed);
+        }
+        setTimeout(type, 1500);
+
+        // Intersection Observer for animations
+        const obs = new IntersectionObserver((entries) => {
+            entries.forEach((e, i) => { if (e.isIntersecting) setTimeout(() => e.target.classList.add('active'), i * 100); });
+        }, { threshold: 0.1 });
+        document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
+
+        // Skill progress animation
+        const skillObs = new IntersectionObserver((entries) => {
+            entries.forEach(e => { if (e.isIntersecting) e.target.style.width = e.target.getAttribute('style').match(/--progress:\s*(\d+)%/)[1] + '%'; });
+        }, { threshold: 0.5 });
+        document.querySelectorAll('.skill-progress').forEach(el => skillObs.observe(el));
+
+        // Counters
+        const countObs = new IntersectionObserver((entries) => {
+            entries.forEach(e => {
+                if (e.isIntersecting) {
+                    const target = parseInt(e.target.dataset.target);
+                    let curr = 0;
+                    const timer = setInterval(() => {
+                        curr += target / 50;
+                        if (curr >= target) { e.target.textContent = target + (target > 10 ? '+' : ''); clearInterval(timer); }
+                        else e.target.textContent = Math.floor(curr);
+                    }, 30);
+                    countObs.unobserve(e.target);
+                }
+            });
+        }, { threshold: 0.5 });
+        document.querySelectorAll('.stat-number').forEach(el => countObs.observe(el));
+
+        // UI Interactions
+        const navbar = document.getElementById('navbar');
+        const scrollProgress = document.getElementById('scroll-progress');
+        const mouseGlow = document.getElementById('mouse-glow');
+
+        // Mouse Glow Logic
+        window.addEventListener('mousemove', (e) => {
+            mouseGlow.style.setProperty('--x', `${e.clientX}px`);
+            mouseGlow.style.setProperty('--y', `${e.clientY}px`);
+            mouseGlow.style.opacity = '1';
+        });
+
+        // Scroll Logic
+        window.addEventListener('scroll', () => {
+            // Navbar transparency
+            navbar.classList.toggle('bg-bg-primary/70', window.scrollY > 50);
+            navbar.classList.toggle('py-3', window.scrollY > 50);
+
+            // Scroll Progress
+            const winScroll = document.body.scrollTop || document.documentElement.scrollTop;
+            const height = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+            const scrolled = (winScroll / height) * 100;
+            scrollProgress.style.width = scrolled + "%";
+        });
+
+        // Mobile Menu with Staggered Links
+        const menuBtn = document.getElementById('mobile-menu-btn'), links = document.getElementById('nav-links'), overlay = document.getElementById('nav-overlay');
+        const toggleMenu = () => {
+            const isOpen = links.classList.contains('max-md:right-0');
+            links.classList.toggle('max-md:-right-full');
+            links.classList.toggle('max-md:right-0');
+            links.classList.toggle('active');
+            overlay.classList.toggle('opacity-0');
+            overlay.classList.toggle('invisible');
+
+            // Staggered animation for links
+            if (!isOpen) {
+                links.querySelectorAll('a').forEach((l, i) => {
+                    l.style.transitionDelay = `${(i + 1) * 0.1}s`;
+                });
+            } else {
+                links.querySelectorAll('a').forEach(l => l.style.transitionDelay = '0s');
+            }
+        };
+        menuBtn.addEventListener('click', toggleMenu);
+        overlay.addEventListener('click', toggleMenu);
+        links.querySelectorAll('a').forEach(l => l.addEventListener('click', toggleMenu));
+
+        // Form Simulation
+        document.getElementById('contact-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const btn = e.target.querySelector('button');
+            const original = btn.innerHTML;
+            btn.innerHTML = '<span>Sending...</span><svg class="animate-spin-slow w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke-opacity="0.25"/><path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"/></svg>';
+            btn.disabled = true;
+            setTimeout(() => {
+                btn.innerHTML = '<span>Message Sent!</span><svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>';
+                btn.classList.add('!from-[#22c55e]', '!to-[#16a34a]');
+                setTimeout(() => { btn.innerHTML = original; btn.classList.remove('!from-[#22c55e]', '!to-[#16a34a]'); btn.disabled = false; e.target.reset(); }, 2000);
+            }, 1500);
+        });
+    </script>
+</body>
+
+</html>
